@@ -1,0 +1,124 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isBootstrappedAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == "iisinstitute1@gmail.com" ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['Super Admin', 'Admin'])
+      );
+    }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isTeacher() {
+      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        getUserData().role == 'Teacher';
+    }
+
+    function isAccountant() {
+      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        getUserData().role in ['Super Admin', 'Admin', 'Accountant'];
+    }
+
+    function isParent() {
+      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        getUserData().role == 'Parent';
+    }
+
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Users collection
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && (request.auth.uid == userId || isBootstrappedAdmin());
+    }
+
+    // Students collection
+    match /students/{studentId} {
+      allow read: if isSignedIn();
+      allow write: if isBootstrappedAdmin();
+    }
+
+    // Teachers collection
+    match /teachers/{teacherId} {
+      allow read: if isSignedIn();
+      allow write: if isBootstrappedAdmin();
+    }
+
+    // Batches collection
+    match /batches/{batchId} {
+      allow read: if isSignedIn();
+      allow write: if isBootstrappedAdmin();
+    }
+
+    // Student Attendance
+    match /student_attendance/{attendanceId} {
+      allow read: if isSignedIn();
+      allow write: if isBootstrappedAdmin() || isTeacher();
+    }
+
+    // Teacher Attendance (Private: only respective teacher or admin)
+    match /teacher_attendance/{attendanceId} {
+      allow read: if isBootstrappedAdmin() || (
+        isSignedIn() && resource.data.teacherId == getUserData().linkedTeacherId
+      );
+      allow write: if isBootstrappedAdmin() || (
+        isSignedIn() && request.resource.data.teacherId == getUserData().linkedTeacherId
+      );
+    }
+
+    // Fee Transactions
+    match /fee_transactions/{txId} {
+      allow read: if isAccountant() || isBootstrappedAdmin() || (
+        isParent() && resource.data.studentId in getUserData().linkedStudentIds
+      );
+      allow write: if isAccountant() || isBootstrappedAdmin();
+    }
+
+    // Fee Reminders
+    match /fee_reminders/{reminderId} {
+      allow read, write: if isAccountant() || isBootstrappedAdmin();
+    }
+
+    // Examinations
+    match /examinations/{examId} {
+      allow read: if isSignedIn();
+      allow write: if isBootstrappedAdmin() || isTeacher();
+    }
+
+    // Student Marks
+    match /student_marks/{markId} {
+      allow read: if isSignedIn();
+      allow write: if isBootstrappedAdmin() || isTeacher();
+    }
+
+    // Announcements
+    match /announcements/{announcementId} {
+      allow read: if isSignedIn();
+      allow write: if isBootstrappedAdmin() || isTeacher();
+    }
+
+    // Notifications
+    match /notifications/{notificationId} {
+      allow read, write: if isSignedIn();
+    }
+
+    // Audit Logs
+    match /audit_logs/{logId} {
+      allow read: if isBootstrappedAdmin();
+      allow create: if isSignedIn();
+      allow update, delete: if false;
+    }
+  }
+}

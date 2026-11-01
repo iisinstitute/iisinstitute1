@@ -1,0 +1,6 @@
+{
+  "name": "IIS Institute CRM - Coaching Management System",
+  "description": "Comprehensive Coaching Institute CRM & ERP for IIS Institute managing students, teachers, two-session attendance, batches, fees, exams, and parent communications.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

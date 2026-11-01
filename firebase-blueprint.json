@@ -1,0 +1,286 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile with role-based access",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "name": { "type": "string" },
+        "role": { "type": "string", "enum": ["Super Admin", "Admin", "Teacher", "Accountant", "Parent"] },
+        "phone": { "type": "string" },
+        "linkedTeacherId": { "type": "string" },
+        "linkedStudentIds": { "type": "array" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["email", "name", "role"]
+    },
+    "Student": {
+      "title": "Student",
+      "description": "Student admission and profile information",
+      "type": "object",
+      "properties": {
+        "studentId": { "type": "string" },
+        "name": { "type": "string" },
+        "fatherName": { "type": "string" },
+        "whatsappNumber": { "type": "string" },
+        "address": { "type": "string" },
+        "dob": { "type": "string" },
+        "gender": { "type": "string", "enum": ["Male", "Female", "Other"] },
+        "classCourse": { "type": "string" },
+        "assignedBatches": { "type": "array" },
+        "monthlyFee": { "type": "number" },
+        "feeDueDate": { "type": "number" },
+        "photoUrl": { "type": "string" },
+        "status": { "type": "string", "enum": ["active", "inactive"] },
+        "notes": { "type": "string" },
+        "admissionDate": { "type": "string" }
+      },
+      "required": ["studentId", "name", "whatsappNumber", "classCourse", "monthlyFee", "status"]
+    },
+    "Teacher": {
+      "title": "Teacher",
+      "description": "Faculty and staff profile",
+      "type": "object",
+      "properties": {
+        "teacherId": { "type": "string" },
+        "name": { "type": "string" },
+        "mobile": { "type": "string" },
+        "email": { "type": "string" },
+        "address": { "type": "string" },
+        "qualification": { "type": "string" },
+        "subjectsTaught": { "type": "array" },
+        "joiningDate": { "type": "string" },
+        "salary": { "type": "number" },
+        "assignedClasses": { "type": "array" },
+        "assignedBatches": { "type": "array" },
+        "status": { "type": "string", "enum": ["active", "inactive"] }
+      },
+      "required": ["teacherId", "name", "mobile", "email", "status"]
+    },
+    "Batch": {
+      "title": "Batch",
+      "description": "Study batch and class timetable record",
+      "type": "object",
+      "properties": {
+        "batchId": { "type": "string" },
+        "name": { "type": "string" },
+        "classCourse": { "type": "string" },
+        "subject": { "type": "string" },
+        "timing": { "type": "string" },
+        "startDate": { "type": "string" },
+        "endDate": { "type": "string" },
+        "classroomNumber": { "type": "string" },
+        "maxCapacity": { "type": "number" },
+        "assignedTeacherIds": { "type": "array" },
+        "status": { "type": "string", "enum": ["active", "completed", "upcoming"] }
+      },
+      "required": ["batchId", "name", "classCourse", "timing", "status"]
+    },
+    "StudentAttendance": {
+      "title": "StudentAttendance",
+      "description": "Daily attendance record for student",
+      "type": "object",
+      "properties": {
+        "studentId": { "type": "string" },
+        "batchId": { "type": "string" },
+        "date": { "type": "string" },
+        "status": { "type": "string", "enum": ["present", "absent", "late", "leave", "holiday"] },
+        "markedBy": { "type": "string" },
+        "markedAt": { "type": "string" },
+        "correctionReason": { "type": "string" }
+      },
+      "required": ["studentId", "batchId", "date", "status"]
+    },
+    "TeacherAttendance": {
+      "title": "TeacherAttendance",
+      "description": "Two-session arrival and departure records for teachers",
+      "type": "object",
+      "properties": {
+        "teacherId": { "type": "string" },
+        "date": { "type": "string" },
+        "session": { "type": "string", "enum": ["morning", "evening"] },
+        "arrivalTime": { "type": "string" },
+        "departureTime": { "type": "string" },
+        "status": { "type": "string", "enum": ["present", "late", "absent", "half_day"] },
+        "lateArrival": { "type": "boolean" },
+        "workingDurationMinutes": { "type": "number" },
+        "remarks": { "type": "string" },
+        "markedBy": { "type": "string" }
+      },
+      "required": ["teacherId", "date", "session", "status"]
+    },
+    "FeeTransaction": {
+      "title": "FeeTransaction",
+      "description": "Fee payment receipt and record",
+      "type": "object",
+      "properties": {
+        "receiptNo": { "type": "string" },
+        "studentId": { "type": "string" },
+        "studentName": { "type": "string" },
+        "batchId": { "type": "string" },
+        "amountPaid": { "type": "number" },
+        "paymentDate": { "type": "string" },
+        "paymentMode": { "type": "string", "enum": ["Cash", "UPI", "Bank Transfer", "Cheque"] },
+        "monthFor": { "type": "string" },
+        "discountApplied": { "type": "number" },
+        "previousBalance": { "type": "number" },
+        "remainingBalance": { "type": "number" },
+        "notes": { "type": "string" },
+        "collectedBy": { "type": "string" }
+      },
+      "required": ["receiptNo", "studentId", "amountPaid", "paymentDate", "paymentMode"]
+    },
+    "FeeReminder": {
+      "title": "FeeReminder",
+      "description": "Fee reminder logs and delivery status",
+      "type": "object",
+      "properties": {
+        "studentId": { "type": "string" },
+        "studentName": { "type": "string" },
+        "parentPhone": { "type": "string" },
+        "amountDue": { "type": "number" },
+        "dueDate": { "type": "string" },
+        "reminderType": { "type": "string", "enum": ["before_due", "on_due", "overdue", "manual"] },
+        "status": { "type": "string", "enum": ["pending", "sent", "delivered", "failed"] },
+        "message": { "type": "string" },
+        "sentAt": { "type": "string" },
+        "channel": { "type": "string", "enum": ["whatsapp", "sms"] }
+      },
+      "required": ["studentId", "studentName", "amountDue", "reminderType", "status", "message"]
+    },
+    "Examination": {
+      "title": "Examination",
+      "description": "Institute examinations",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "classCourse": { "type": "string" },
+        "batchId": { "type": "string" },
+        "examDate": { "type": "string" },
+        "subjects": { "type": "array" },
+        "status": { "type": "string", "enum": ["scheduled", "conducted", "published"] }
+      },
+      "required": ["title", "classCourse", "examDate", "subjects", "status"]
+    },
+    "StudentMarks": {
+      "title": "StudentMarks",
+      "description": "Student marks and grades per exam",
+      "type": "object",
+      "properties": {
+        "examId": { "type": "string" },
+        "examTitle": { "type": "string" },
+        "studentId": { "type": "string" },
+        "studentName": { "type": "string" },
+        "batchId": { "type": "string" },
+        "marks": { "type": "object" },
+        "totalMarks": { "type": "number" },
+        "maxTotalMarks": { "type": "number" },
+        "percentage": { "type": "number" },
+        "grade": { "type": "string" },
+        "rank": { "type": "number" },
+        "teacherRemarks": { "type": "string" },
+        "enteredBy": { "type": "string" }
+      },
+      "required": ["examId", "studentId", "totalMarks", "percentage", "grade"]
+    },
+    "Announcement": {
+      "title": "Announcement",
+      "description": "Notice and bulletin for parents and staff",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "targetAudience": { "type": "string", "enum": ["all", "class", "batch", "parents", "teachers"] },
+        "targetId": { "type": "string" },
+        "priority": { "type": "string", "enum": ["normal", "urgent"] },
+        "createdBy": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["title", "content", "targetAudience", "createdAt"]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "System event notifications",
+      "type": "object",
+      "properties": {
+        "type": { "type": "string" },
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "read": { "type": "boolean" },
+        "createdAt": { "type": "string" },
+        "metadata": { "type": "object" }
+      },
+      "required": ["type", "title", "message", "read", "createdAt"]
+    },
+    "AuditLog": {
+      "title": "AuditLog",
+      "description": "Security and operation audit trail",
+      "type": "object",
+      "properties": {
+        "action": { "type": "string" },
+        "entityType": { "type": "string" },
+        "entityId": { "type": "string" },
+        "performedBy": { "type": "string" },
+        "userRole": { "type": "string" },
+        "details": { "type": "string" },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["action", "entityType", "performedBy", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles and credentials"
+    },
+    "/students/{studentDocId}": {
+      "schema": "Student",
+      "description": "Student records and profiles"
+    },
+    "/teachers/{teacherDocId}": {
+      "schema": "Teacher",
+      "description": "Teacher profiles and records"
+    },
+    "/batches/{batchDocId}": {
+      "schema": "Batch",
+      "description": "Class batches and schedules"
+    },
+    "/student_attendance/{attendanceDocId}": {
+      "schema": "StudentAttendance",
+      "description": "Daily student attendance records"
+    },
+    "/teacher_attendance/{attendanceDocId}": {
+      "schema": "TeacherAttendance",
+      "description": "Two-session teacher arrival and departure records"
+    },
+    "/fee_transactions/{transactionDocId}": {
+      "schema": "FeeTransaction",
+      "description": "Payment transactions and receipts"
+    },
+    "/fee_reminders/{reminderDocId}": {
+      "schema": "FeeReminder",
+      "description": "Automated and manual fee reminder logs"
+    },
+    "/examinations/{examDocId}": {
+      "schema": "Examination",
+      "description": "Institute examinations"
+    },
+    "/student_marks/{markDocId}": {
+      "schema": "StudentMarks",
+      "description": "Student marks and grades per exam"
+    },
+    "/announcements/{announcementDocId}": {
+      "schema": "Announcement",
+      "description": "Institute announcements and notices"
+    },
+    "/notifications/{notificationDocId}": {
+      "schema": "Notification",
+      "description": "Internal alert notifications"
+    },
+    "/audit_logs/{auditDocId}": {
+      "schema": "AuditLog",
+      "description": "Audit trails for operations"
+    }
+  }
+}
