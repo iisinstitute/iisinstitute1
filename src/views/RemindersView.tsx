@@ -12,14 +12,16 @@ import {
   Phone,
   RefreshCw,
   Search,
+  Trash2,
 } from 'lucide-react';
 import { useData } from '../context/DataContext.tsx';
 import { useAuth } from '../context/AuthContext.tsx';
 import { FeeReminder, Student } from '../types/index.ts';
 import { Modal } from '../components/common/Modal.tsx';
+import { ConfirmDialog } from '../components/common/ConfirmDialog.tsx';
 
 export const RemindersView: React.FC = () => {
-  const { students, feeTransactions, feeReminders, sendFeeReminder, sendBulkFeeReminders } = useData();
+  const { students, feeTransactions, feeReminders, sendFeeReminder, sendBulkFeeReminders, deleteFeeReminder } = useData();
   const { currentUser, canManageFees } = useAuth();
 
   const [filterType, setFilterType] = useState<'all' | 'due' | 'overdue' | 'upcoming'>('all');
@@ -30,10 +32,22 @@ export const RemindersView: React.FC = () => {
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [sendingId, setSendingId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<FeeReminder | null>(null);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3500);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      await deleteFeeReminder(deleteTarget.id, currentUser.name);
+      showToast('Fee reminder log removed.');
+      setDeleteTarget(null);
+    } catch {
+      showToast('Error deleting reminder.');
+    }
   };
 
   const todayDateNum = new Date().getDate(); // day of month e.g. 1
@@ -372,10 +386,11 @@ export const RemindersView: React.FC = () => {
                 <th className="py-3 px-4">Sent Timestamp</th>
                 <th className="py-3 px-4">Delivery Status</th>
                 <th className="py-3 px-4">Dispatched Message</th>
+                <th className="py-3 px-4 text-right">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 font-medium text-gray-700">
-              {feeReminders.slice(0, 10).map(r => (
+              {feeReminders.slice(0, 15).map(r => (
                 <tr key={r.id} className="hover:bg-gray-50">
                   <td className="py-3 px-4 font-bold text-gray-900">{r.studentName}</td>
                   <td className="py-3 px-4 font-mono text-gray-700">{r.parentPhone}</td>
@@ -391,6 +406,15 @@ export const RemindersView: React.FC = () => {
                   </td>
                   <td className="py-3 px-4 text-gray-500 text-[11px] max-w-xs truncate" title={r.message}>
                     {r.message}
+                  </td>
+                  <td className="py-3 px-4 text-right">
+                    <button
+                      onClick={() => setDeleteTarget(r)}
+                      className="rounded-lg p-1 text-gray-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                      title="Delete reminder record"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -435,6 +459,16 @@ export const RemindersView: React.FC = () => {
           </div>
         </div>
       </Modal>
+
+      {/* CONFIRM DELETE REMINDER DIALOG */}
+      <ConfirmDialog
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleConfirmDelete}
+        title="Delete Reminder Log?"
+        message={`Are you sure you want to remove the reminder dispatch record for ${deleteTarget?.studentName} (${deleteTarget?.parentPhone})?`}
+        confirmLabel="Delete Record"
+      />
     </div>
   );
 };

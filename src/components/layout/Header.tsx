@@ -141,7 +141,7 @@ export const Header: React.FC<HeaderProps> = ({ currentTabTitle, onSearch }) => 
           )}
         </div>
 
-        {/* User Card & Google Auth */}
+        {/* User Card & Authentication */}
         <div className="flex items-center gap-3 pl-2 border-l border-gray-200">
           <div className="flex items-center gap-2.5">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-linear-to-br from-blue-600 to-purple-600 text-white font-bold text-xs shadow-xs">
@@ -153,30 +153,27 @@ export const Header: React.FC<HeaderProps> = ({ currentTabTitle, onSearch }) => 
             </div>
             <div className="hidden sm:block text-left">
               <p className="text-xs font-bold text-gray-900 leading-none">{currentUser.name}</p>
-              <span className="inline-block mt-0.5 text-[10px] font-semibold text-purple-700 bg-purple-50 px-1.5 py-0.2 rounded">
-                {activeRole}
-              </span>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <span className="inline-block text-[10px] font-semibold text-purple-700 bg-purple-50 px-1.5 py-0.2 rounded">
+                  {activeRole}
+                </span>
+                {currentUser.phone && (
+                  <span className="text-[10px] font-mono text-gray-400">
+                    {currentUser.phone}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 
-          {firebaseUser ? (
-            <button
-              onClick={logout}
-              className="rounded-xl border border-gray-200 p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition-colors"
-              title="Sign Out Google"
-            >
-              <LogOut className="h-4 w-4" />
-            </button>
-          ) : (
-            <button
-              onClick={loginWithGoogle}
-              className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 shadow-xs transition-colors"
-              title="Sign in with Google"
-            >
-              <LogIn className="h-3.5 w-3.5" />
-              <span className="hidden md:inline">Google Auth</span>
-            </button>
-          )}
+          <button
+            onClick={logout}
+            className="flex items-center gap-1 rounded-xl border border-gray-200 bg-gray-50 px-2.5 py-1.5 text-xs font-semibold text-gray-600 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200 transition-colors"
+            title="Log out of current account"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            <span className="hidden md:inline">Sign Out</span>
+          </button>
         </div>
       </div>
     </header>

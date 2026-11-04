@@ -340,7 +340,7 @@ export const BatchesView: React.FC = () => {
                     </div>
                     <div>
                       <h3 className="text-sm font-bold text-gray-900">{tch.name}</h3>
-                      <p className="text-xs text-gray-500">{tch.qualification} • {tch.subjectsTaught.join(', ')}</p>
+                      <p className="text-xs text-gray-500">{tch.teacherId} • {tch.subjectsTaught.join(', ')}</p>
                     </div>
                   </div>
                   <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-bold text-blue-700">
@@ -513,7 +513,7 @@ export const BatchesView: React.FC = () => {
                     />
                     <div>
                       <span className="font-bold text-gray-900 block">{t.name}</span>
-                      <span className="text-[10px] text-gray-500">{t.qualification}</span>
+                      <span className="text-[10px] text-gray-500">{t.subjectsTaught.join(', ')}</span>
                     </div>
                   </label>
                 );

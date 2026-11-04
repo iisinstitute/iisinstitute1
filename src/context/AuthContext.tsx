@@ -6,7 +6,10 @@ import { signInWithPopup, signOut, onAuthStateChanged, User as FirebaseUser } fr
 
 interface AuthContextType {
   currentUser: UserProfile;
+  isAuthenticated: boolean;
   activeRole: UserRole;
+  loginWithPhone: (phone: string, password: string) => Promise<{ success: boolean; message?: string }>;
+  loginAsDemoUser: (user: UserProfile) => void;
   switchRole: (role: UserRole, specificUserId?: string) => void;
   availableUsers: UserProfile[];
   firebaseUser: FirebaseUser | null;
@@ -30,20 +33,51 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Helper to normalize phone numbers (extract digits)
+export const normalizePhone = (phoneStr: string): string => {
+  const digits = phoneStr.replace(/\D/g, '');
+  // If starts with 91 and has 12 digits, extract last 10 digits
+  if (digits.length === 12 && digits.startsWith('91')) {
+    return digits.substring(2);
+  }
+  // If starts with 0 and has 11 digits, extract last 10 digits
+  if (digits.length === 11 && digits.startsWith('0')) {
+    return digits.substring(1);
+  }
+  return digits;
+};
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState<UserProfile>(INITIAL_USERS[0]); // default Super Admin
+  const [currentUser, setCurrentUser] = useState<UserProfile>(() => {
+    try {
+      const savedUser = localStorage.getItem('iis_user');
+      if (savedUser) return JSON.parse(savedUser);
+    } catch {}
+    return INITIAL_USERS[0];
+  });
+
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    try {
+      const savedAuth = localStorage.getItem('iis_auth');
+      // If user had logged in, keep logged in
+      return savedAuth === 'true';
+    } catch {}
+    return true; // Keep true by default for immediate preview, but fully support logout & login
+  });
+
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setFirebaseUser(user);
       if (user && user.email) {
-        // If logged in via Google, check if user matches or create profile
+        setIsAuthenticated(true);
+        localStorage.setItem('iis_auth', 'true');
         const matched = INITIAL_USERS.find(u => u.email.toLowerCase() === user.email?.toLowerCase());
         if (matched) {
           setCurrentUser(matched);
+          localStorage.setItem('iis_user', JSON.stringify(matched));
         } else {
-          // If logged in with another Google account, default to Super Admin for institute owner
           const newProfile: UserProfile = {
             id: user.uid,
             email: user.email,
@@ -53,17 +87,98 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             createdAt: new Date().toISOString(),
           };
           setCurrentUser(newProfile);
+          localStorage.setItem('iis_user', JSON.stringify(newProfile));
         }
       }
     });
     return () => unsubscribe();
   }, []);
 
+  const loginWithPhone = async (phoneInput: string, passwordInput: string): Promise<{ success: boolean; message?: string }> => {
+    const cleanedInputPhone = normalizePhone(phoneInput);
+    if (!cleanedInputPhone || cleanedInputPhone.length < 5) {
+      return { success: false, message: 'Please enter a valid mobile number (e.g. 9820112345).' };
+    }
+
+    if (!passwordInput.trim()) {
+      return { success: false, message: 'Please enter your account password.' };
+    }
+
+    // Look for match in registered institute users
+    const matched = INITIAL_USERS.find(u => {
+      const uPhone = normalizePhone(u.phone || '');
+      return uPhone === cleanedInputPhone || uPhone.endsWith(cleanedInputPhone) || cleanedInputPhone.endsWith(uPhone);
+    });
+
+    if (matched) {
+      // Validate password (supports user password, '123', 'admin123', 'teacher123', 'accounts123', 'parent123', '123456')
+      const validPasswords = [
+        matched.password,
+        '123',
+        '123456',
+        'admin123',
+        'teacher123',
+        'accounts123',
+        'parent123',
+        'iis123',
+      ].filter(Boolean);
+
+      if (!validPasswords.includes(passwordInput.trim())) {
+        return { success: false, message: 'Invalid password. (Default demo password is: 123)' };
+      }
+
+      setCurrentUser(matched);
+      setIsAuthenticated(true);
+      try {
+        localStorage.setItem('iis_user', JSON.stringify(matched));
+        localStorage.setItem('iis_auth', 'true');
+      } catch {}
+      return { success: true };
+    }
+
+    // Check if phone matches a generic faculty or student format
+    if (cleanedInputPhone.length >= 10) {
+      // Create user session for this mobile number
+      const genericUser: UserProfile = {
+        id: `user_phone_${cleanedInputPhone}`,
+        name: `User (${cleanedInputPhone.slice(-4)})`,
+        email: `${cleanedInputPhone}@iisinstitute.com`,
+        phone: cleanedInputPhone,
+        role: 'Teacher',
+        createdAt: new Date().toISOString(),
+      };
+      setCurrentUser(genericUser);
+      setIsAuthenticated(true);
+      try {
+        localStorage.setItem('iis_user', JSON.stringify(genericUser));
+        localStorage.setItem('iis_auth', 'true');
+      } catch {}
+      return { success: true };
+    }
+
+    return {
+      success: false,
+      message: 'Mobile number not found. You can use any demo account (e.g. 9820112345 for Super Admin).',
+    };
+  };
+
+  const loginAsDemoUser = (user: UserProfile) => {
+    setCurrentUser(user);
+    setIsAuthenticated(true);
+    try {
+      localStorage.setItem('iis_user', JSON.stringify(user));
+      localStorage.setItem('iis_auth', 'true');
+    } catch {}
+  };
+
   const switchRole = (role: UserRole, specificUserId?: string) => {
     if (specificUserId) {
       const user = INITIAL_USERS.find(u => u.id === specificUserId);
       if (user) {
         setCurrentUser(user);
+        try {
+          localStorage.setItem('iis_user', JSON.stringify(user));
+        } catch {}
         return;
       }
     }
@@ -72,14 +187,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       email: `${role.toLowerCase().replace(' ', '_')}@iisinstitute.com`,
       name: `${role} User`,
       role,
+      phone: '9820000000',
       createdAt: new Date().toISOString(),
     };
     setCurrentUser(defaultForRole);
+    try {
+      localStorage.setItem('iis_user', JSON.stringify(defaultForRole));
+    } catch {}
   };
 
   const loginWithGoogle = async () => {
     try {
       await signInWithPopup(auth, googleAuthProvider);
+      setIsAuthenticated(true);
+      localStorage.setItem('iis_auth', 'true');
     } catch (err) {
       console.error('Google Sign In Error: ', err);
       throw err;
@@ -88,10 +209,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     try {
-      await signOut(auth);
-      setCurrentUser(INITIAL_USERS[0]);
+      if (firebaseUser) {
+        await signOut(auth);
+      }
     } catch (err) {
       console.error('Sign Out Error: ', err);
+    } finally {
+      setIsAuthenticated(false);
+      try {
+        localStorage.removeItem('iis_auth');
+      } catch {}
     }
   };
 
@@ -121,7 +248,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     <AuthContext.Provider
       value={{
         currentUser,
+        isAuthenticated,
         activeRole: currentUser.role,
+        loginWithPhone,
+        loginAsDemoUser,
         switchRole,
         availableUsers: INITIAL_USERS,
         firebaseUser,

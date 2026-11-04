@@ -3,6 +3,7 @@ import {
   Megaphone,
   Plus,
   Trash2,
+  Edit2,
   Calendar,
   AlertTriangle,
   Send,
@@ -12,12 +13,15 @@ import { useData } from '../context/DataContext.tsx';
 import { useAuth } from '../context/AuthContext.tsx';
 import { Announcement } from '../types/index.ts';
 import { Modal } from '../components/common/Modal.tsx';
+import { ConfirmDialog } from '../components/common/ConfirmDialog.tsx';
 
 export const AnnouncementsView: React.FC = () => {
-  const { announcements, batches, createAnnouncement, deleteAnnouncement } = useData();
+  const { announcements, batches, createAnnouncement, updateAnnouncement, deleteAnnouncement } = useData();
   const { currentUser, isAdmin } = useAuth();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingAnnouncement, setEditingAnnouncement] = useState<Announcement | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Announcement | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const [title, setTitle] = useState('');
@@ -31,36 +35,74 @@ export const AnnouncementsView: React.FC = () => {
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  const handleCreate = async (e: React.FormEvent) => {
+  const handleOpenCreate = () => {
+    setEditingAnnouncement(null);
+    setTitle('');
+    setContent('');
+    setTargetAudience('all');
+    setTargetId('');
+    setPriority('normal');
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEdit = (ann: Announcement) => {
+    setEditingAnnouncement(ann);
+    setTitle(ann.title);
+    setContent(ann.content);
+    setTargetAudience(ann.targetAudience);
+    setTargetId(ann.targetId || '');
+    setPriority(ann.priority);
+    setIsModalOpen(true);
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !content.trim()) return;
 
     try {
-      await createAnnouncement(
-        {
-          title,
-          content,
-          targetAudience,
-          targetId: targetId || undefined,
-          priority,
-          createdBy: currentUser.name,
-        },
-        currentUser.name
-      );
-      showToast(`Announcement "${title}" broadcasted successfully!`);
+      if (editingAnnouncement) {
+        await updateAnnouncement(
+          editingAnnouncement.id,
+          {
+            title,
+            content,
+            targetAudience,
+            targetId: targetId || undefined,
+            priority,
+          },
+          currentUser.name
+        );
+        showToast(`Notice "${title}" updated successfully.`);
+      } else {
+        await createAnnouncement(
+          {
+            title,
+            content,
+            targetAudience,
+            targetId: targetId || undefined,
+            priority,
+            createdBy: currentUser.name,
+          },
+          currentUser.name
+        );
+        showToast(`Announcement "${title}" broadcasted successfully!`);
+      }
       setIsModalOpen(false);
+      setEditingAnnouncement(null);
       setTitle('');
       setContent('');
-    } catch (err) {
-      showToast('Error broadcasting announcement.');
+    } catch {
+      showToast('Error saving announcement.');
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
     try {
-      await deleteAnnouncement(id, currentUser.name);
-      showToast('Notice removed.');
-    } catch (err) {
+      await deleteAnnouncement(deleteTarget.id, currentUser.name);
+      showToast('Notice removed successfully.');
+      setDeleteTarget(null);
+    } catch {
       showToast('Error deleting announcement.');
     }
   };
@@ -85,7 +127,7 @@ export const AnnouncementsView: React.FC = () => {
 
         {isAdmin && (
           <button
-            onClick={() => setIsModalOpen(true)}
+            onClick={handleOpenCreate}
             className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-3.5 py-2 text-xs font-bold text-white shadow-xs hover:bg-blue-700 transition-colors"
           >
             <Plus className="h-4 w-4" />
@@ -126,13 +168,22 @@ export const AnnouncementsView: React.FC = () => {
                 </div>
 
                 {isAdmin && (
-                  <button
-                    onClick={() => handleDelete(ann.id)}
-                    className="rounded-lg p-1 text-gray-400 hover:text-rose-600 hover:bg-gray-100 transition-colors"
-                    title="Delete Notice"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => handleOpenEdit(ann)}
+                      className="rounded-lg p-1.5 text-gray-400 hover:text-blue-600 hover:bg-gray-100 transition-colors"
+                      title="Edit Notice"
+                    >
+                      <Edit2 className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => setDeleteTarget(ann)}
+                      className="rounded-lg p-1.5 text-gray-400 hover:text-rose-600 hover:bg-gray-100 transition-colors"
+                      title="Delete Notice"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
                 )}
               </div>
 
@@ -147,102 +198,114 @@ export const AnnouncementsView: React.FC = () => {
         )}
       </div>
 
-      {/* POST NOTICE MODAL */}
-      <Modal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title="Post New Circular / Notice"
-        subtitle="Broadcast to parents and faculty"
-        maxWidth="lg"
-      >
-        <form onSubmit={handleCreate} className="space-y-4 text-xs">
-          <div>
-            <label className="block font-bold text-gray-700 mb-1">Circular Title *</label>
-            <input
-              type="text"
-              required
-              value={title}
-              onChange={e => setTitle(e.target.value)}
-              placeholder="e.g. Mandatory Parent-Teacher Meeting (Term 1)"
-              className="w-full rounded-xl border border-gray-200 py-2 px-3 focus:border-blue-500 focus:outline-hidden"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
+      {/* POST / EDIT NOTICE MODAL */}
+      {isModalOpen && (
+        <Modal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          title={editingAnnouncement ? 'Edit Circular Notice' : 'Post New Circular / Notice'}
+          subtitle="Broadcast to parents and faculty"
+          maxWidth="lg"
+        >
+          <form onSubmit={handleSave} className="space-y-4 text-xs">
             <div>
-              <label className="block font-bold text-gray-700 mb-1">Target Audience *</label>
-              <select
-                value={targetAudience}
-                onChange={e => setTargetAudience(e.target.value as any)}
+              <label className="block font-bold text-gray-700 mb-1">Circular Title *</label>
+              <input
+                type="text"
+                required
+                value={title}
+                onChange={e => setTitle(e.target.value)}
+                placeholder="e.g. Mandatory Parent-Teacher Meeting (Term 1)"
                 className="w-full rounded-xl border border-gray-200 py-2 px-3 focus:border-blue-500 focus:outline-hidden"
-              >
-                <option value="all">All (Parents & Faculty)</option>
-                <option value="parents">All Parents Only</option>
-                <option value="teachers">Teaching Staff Only</option>
-                <option value="batch">Specific Batch</option>
-              </select>
+              />
             </div>
 
-            <div>
-              <label className="block font-bold text-gray-700 mb-1">Priority</label>
-              <select
-                value={priority}
-                onChange={e => setPriority(e.target.value as any)}
-                className="w-full rounded-xl border border-gray-200 py-2 px-3 focus:border-blue-500 focus:outline-hidden"
-              >
-                <option value="normal">Normal Bulletin</option>
-                <option value="urgent">Urgent Alert</option>
-              </select>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block font-bold text-gray-700 mb-1">Target Audience *</label>
+                <select
+                  value={targetAudience}
+                  onChange={e => setTargetAudience(e.target.value as any)}
+                  className="w-full rounded-xl border border-gray-200 py-2 px-3 focus:border-blue-500 focus:outline-hidden"
+                >
+                  <option value="all">All (Parents & Faculty)</option>
+                  <option value="parents">All Parents Only</option>
+                  <option value="teachers">Teaching Staff Only</option>
+                  <option value="batch">Specific Batch</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-bold text-gray-700 mb-1">Priority</label>
+                <select
+                  value={priority}
+                  onChange={e => setPriority(e.target.value as any)}
+                  className="w-full rounded-xl border border-gray-200 py-2 px-3 focus:border-blue-500 focus:outline-hidden"
+                >
+                  <option value="normal">Normal Bulletin</option>
+                  <option value="urgent">Urgent Alert</option>
+                </select>
+              </div>
             </div>
-          </div>
 
-          {targetAudience === 'batch' && (
+            {targetAudience === 'batch' && (
+              <div>
+                <label className="block font-bold text-gray-700 mb-1">Select Batch</label>
+                <select
+                  value={targetId}
+                  onChange={e => setTargetId(e.target.value)}
+                  className="w-full rounded-xl border border-gray-200 py-2 px-3 focus:border-blue-500 focus:outline-hidden"
+                >
+                  <option value="">Select Target Batch</option>
+                  {batches.map(b => (
+                    <option key={b.id} value={b.batchId}>
+                      {b.batchId} - {b.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             <div>
-              <label className="block font-bold text-gray-700 mb-1">Select Batch</label>
-              <select
-                value={targetId}
-                onChange={e => setTargetId(e.target.value)}
+              <label className="block font-bold text-gray-700 mb-1">Notice Content *</label>
+              <textarea
+                required
+                rows={4}
+                value={content}
+                onChange={e => setContent(e.target.value)}
+                placeholder="Write the full circular notice here..."
                 className="w-full rounded-xl border border-gray-200 py-2 px-3 focus:border-blue-500 focus:outline-hidden"
-              >
-                <option value="">Select Target Batch</option>
-                {batches.map(b => (
-                  <option key={b.id} value={b.batchId}>
-                    {b.batchId} - {b.name}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
-          )}
 
-          <div>
-            <label className="block font-bold text-gray-700 mb-1">Notice Content *</label>
-            <textarea
-              required
-              rows={4}
-              value={content}
-              onChange={e => setContent(e.target.value)}
-              placeholder="Write the full circular notice here..."
-              className="w-full rounded-xl border border-gray-200 py-2 px-3 focus:border-blue-500 focus:outline-hidden"
-            />
-          </div>
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-gray-100">
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(false)}
+                className="rounded-xl border border-gray-200 px-4 py-2 font-semibold text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="rounded-xl bg-blue-600 px-5 py-2 font-bold text-white shadow-xs hover:bg-blue-700"
+              >
+                {editingAnnouncement ? 'Save Changes' : 'Broadcast Circular'}
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
 
-          <div className="flex items-center justify-end gap-3 pt-3 border-t border-gray-100">
-            <button
-              type="button"
-              onClick={() => setIsModalOpen(false)}
-              className="rounded-xl border border-gray-200 px-4 py-2 font-semibold text-gray-700 hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="rounded-xl bg-blue-600 px-5 py-2 font-bold text-white shadow-xs hover:bg-blue-700"
-            >
-              Broadcast Circular
-            </button>
-          </div>
-        </form>
-      </Modal>
+      {/* CONFIRM DELETE NOTICE DIALOG */}
+      <ConfirmDialog
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleConfirmDelete}
+        title="Delete Circular Notice?"
+        message={`Are you sure you want to remove the announcement "${deleteTarget?.title}"?`}
+        confirmLabel="Delete Notice"
+      />
     </div>
   );
 };

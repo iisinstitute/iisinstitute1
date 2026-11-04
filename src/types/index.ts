@@ -6,6 +6,7 @@ export interface UserProfile {
   name: string;
   role: UserRole;
   phone?: string;
+  password?: string;
   avatarUrl?: string;
   linkedTeacherId?: string;
   linkedStudentIds?: string[];
@@ -38,8 +39,6 @@ export interface Teacher {
   name: string;
   mobile: string;
   email: string;
-  address?: string; // Deprecated/hidden per institute requirement
-  qualification?: string; // Deprecated/hidden per institute requirement
   subjectsTaught: string[];
   joiningDate: string;
   salary: number;

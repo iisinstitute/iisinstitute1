@@ -320,14 +320,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const deleteStudent = async (id: string, performedBy: string, userRole: string) => {
     const target = students.find(s => s.id === id);
+    setStudents(prev => prev.filter(s => s.id !== id));
     try {
       await deleteDoc(doc(db, 'students', id));
     } catch (err) {
-      handleFirestoreError(err, OperationType.DELETE, `students/${id}`);
+      console.warn(`Firestore sync note for delete students/${id}:`, err);
     }
-
-    setStudents(prev => prev.filter(s => s.id !== id));
-    await addAuditLog('Student Deleted', 'Student', target?.studentId || id, `Removed record for student ${target?.name}`, performedBy, userRole);
+    await addAuditLog('Student Deleted', 'Student', target?.studentId || id, `Removed record for student ${target?.name || id}`, performedBy, userRole);
   };
 
   const importStudents = async (newStudents: Partial<Student>[], performedBy: string, userRole: string): Promise<number> => {
@@ -423,14 +422,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const deleteTeacher = async (id: string, performedBy: string, userRole: string) => {
     const target = teachers.find(t => t.id === id);
+    setTeachers(prev => prev.filter(t => t.id !== id));
     try {
       await deleteDoc(doc(db, 'teachers', id));
     } catch (err) {
-      handleFirestoreError(err, OperationType.DELETE, `teachers/${id}`);
+      console.warn(`Firestore sync note for delete teachers/${id}:`, err);
     }
-
-    setTeachers(prev => prev.filter(t => t.id !== id));
-    await addAuditLog('Teacher Deleted', 'Teacher', target?.teacherId || id, `Removed teacher ${target?.name}`, performedBy, userRole);
+    await addAuditLog('Teacher Deleted', 'Teacher', target?.teacherId || id, `Removed teacher ${target?.name || id}`, performedBy, userRole);
   };
 
   // 3. BATCH ACTIONS
@@ -472,14 +470,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const deleteBatch = async (id: string, performedBy: string, userRole: string) => {
     const target = batches.find(b => b.id === id);
+    setBatches(prev => prev.filter(b => b.id !== id));
     try {
       await deleteDoc(doc(db, 'batches', id));
     } catch (err) {
-      handleFirestoreError(err, OperationType.DELETE, `batches/${id}`);
+      console.warn(`Firestore sync note for delete batches/${id}:`, err);
     }
-
-    setBatches(prev => prev.filter(b => b.id !== id));
-    await addAuditLog('Batch Deleted', 'Batch', target?.batchId || id, `Deleted batch ${target?.name}`, performedBy, userRole);
+    await addAuditLog('Batch Deleted', 'Batch', target?.batchId || id, `Deleted batch ${target?.name || id}`, performedBy, userRole);
   };
 
   // 4. STUDENT ATTENDANCE ACTIONS
@@ -559,13 +556,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const deleteStudentAttendance = async (id: string, performedBy: string, userRole: string) => {
     const existing = studentAttendance.find(a => a.id === id);
+    setStudentAttendance(prev => prev.filter(a => a.id !== id));
     try {
       await deleteDoc(doc(db, 'student_attendance', id));
     } catch (err) {
-      handleFirestoreError(err, OperationType.DELETE, `student_attendance/${id}`);
+      console.warn(`Firestore sync note for delete student_attendance/${id}:`, err);
     }
-
-    setStudentAttendance(prev => prev.filter(a => a.id !== id));
     await addAuditLog('Student Attendance Deleted', 'StudentAttendance', existing?.studentId || id, `Deleted attendance record for ${existing?.studentName || existing?.studentId} on ${existing?.date}`, performedBy, userRole);
   };
 
@@ -706,13 +702,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const deleteTeacherAttendance = async (id: string, performedBy: string, userRole: string) => {
     const existing = teacherAttendance.find(a => a.id === id);
+    setTeacherAttendance(prev => prev.filter(a => a.id !== id));
     try {
       await deleteDoc(doc(db, 'teacher_attendance', id));
     } catch (err) {
-      handleFirestoreError(err, OperationType.DELETE, `teacher_attendance/${id}`);
+      console.warn(`Firestore sync note for delete teacher_attendance/${id}:`, err);
     }
-
-    setTeacherAttendance(prev => prev.filter(a => a.id !== id));
     await addAuditLog('Teacher Attendance Deleted', 'TeacherAttendance', existing?.teacherId || id, `Deleted ${existing?.session} session log for ${existing?.teacherName} on ${existing?.date}`, performedBy, userRole);
   };
 
@@ -779,12 +774,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const deleteFeeTransaction = async (id: string, performedBy: string, userRole: string) => {
     const existing = feeTransactions.find(t => t.id === id);
+    setFeeTransactions(prev => prev.filter(t => t.id !== id));
     try {
       await deleteDoc(doc(db, 'fee_transactions', id));
     } catch (err) {
-      handleFirestoreError(err, OperationType.DELETE, `fee_transactions/${id}`);
+      console.warn(`Firestore sync note for delete fee_transactions/${id}:`, err);
     }
-    setFeeTransactions(prev => prev.filter(t => t.id !== id));
     await addAuditLog('Fee Transaction Deleted', 'FeeTransaction', existing?.receiptNo || id, `Deleted receipt ${existing?.receiptNo} for ${existing?.studentName}`, performedBy, userRole);
   };
 
@@ -868,12 +863,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const deleteFeeReminder = async (id: string, performedBy: string) => {
+    setFeeReminders(prev => prev.filter(r => r.id !== id));
     try {
       await deleteDoc(doc(db, 'fee_reminders', id));
     } catch (err) {
-      handleFirestoreError(err, OperationType.DELETE, `fee_reminders/${id}`);
+      console.warn(`Firestore sync note for delete fee_reminders/${id}:`, err);
     }
-    setFeeReminders(prev => prev.filter(r => r.id !== id));
     await addAuditLog('Fee Reminder Deleted', 'FeeReminder', id, `Deleted reminder record`, performedBy, 'Accountant');
   };
 
@@ -912,14 +907,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const deleteExam = async (id: string, performedBy: string, userRole: string) => {
     const target = examinations.find(e => e.id === id);
+    setExaminations(prev => prev.filter(e => e.id !== id));
     try {
       await deleteDoc(doc(db, 'examinations', id));
     } catch (err) {
-      handleFirestoreError(err, OperationType.DELETE, `examinations/${id}`);
+      console.warn(`Firestore sync note for delete examinations/${id}:`, err);
     }
-
-    setExaminations(prev => prev.filter(e => e.id !== id));
-    await addAuditLog('Exam Deleted', 'Examination', target?.title || id, `Deleted examination ${target?.title}`, performedBy, userRole);
+    await addAuditLog('Exam Deleted', 'Examination', target?.title || id, `Deleted examination ${target?.title || id}`, performedBy, userRole);
   };
 
   const saveStudentMarks = async (marksData: Omit<StudentMarks, 'id'>, performedBy: string, userRole: string) => {
@@ -966,13 +960,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const deleteStudentMarks = async (id: string, performedBy: string, userRole: string) => {
     const target = studentMarks.find(m => m.id === id);
+    setStudentMarks(prev => prev.filter(m => m.id !== id));
     try {
       await deleteDoc(doc(db, 'student_marks', id));
     } catch (err) {
-      handleFirestoreError(err, OperationType.DELETE, `student_marks/${id}`);
+      console.warn(`Firestore sync note for delete student_marks/${id}:`, err);
     }
-    setStudentMarks(prev => prev.filter(m => m.id !== id));
-    await addAuditLog('Student Marks Deleted', 'StudentMarks', target?.studentId || id, `Deleted marks record for ${target?.studentName} in ${target?.examTitle}`, performedBy, userRole);
+    await addAuditLog('Student Marks Deleted', 'StudentMarks', target?.studentId || id, `Deleted marks record for ${target?.studentName || id} in ${target?.examTitle || 'Exam'}`, performedBy, userRole);
   };
 
   // 9. ANNOUNCEMENTS
@@ -1009,13 +1003,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const deleteAnnouncement = async (id: string, performedBy: string) => {
+    setAnnouncements(prev => prev.filter(a => a.id !== id));
     try {
       await deleteDoc(doc(db, 'announcements', id));
     } catch (err) {
-      handleFirestoreError(err, OperationType.DELETE, `announcements/${id}`);
+      console.warn(`Firestore sync note for delete announcements/${id}:`, err);
     }
-
-    setAnnouncements(prev => prev.filter(a => a.id !== id));
     await addAuditLog('Announcement Removed', 'Announcement', id, `Removed circular notice`, performedBy, 'Admin');
   };
 

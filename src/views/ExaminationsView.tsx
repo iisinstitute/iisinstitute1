@@ -736,6 +736,107 @@ export const ExaminationsView: React.FC = () => {
           </div>
         </form>
       </Modal>
+
+      {/* EDIT EXAM MODAL */}
+      {editingExam && (
+        <Modal
+          isOpen={!!editingExam}
+          onClose={() => setEditingExam(null)}
+          title="Edit Examination Schedule"
+          subtitle={`Exam: ${editingExam.title} (${editingExam.classCourse})`}
+          maxWidth="md"
+        >
+          <form onSubmit={handleSaveEditExam} className="space-y-4 text-xs">
+            <div>
+              <label className="block font-bold text-gray-700 mb-1">Exam Title *</label>
+              <input
+                type="text"
+                required
+                value={editTitle}
+                onChange={e => setEditTitle(e.target.value)}
+                className="w-full rounded-xl border border-gray-200 py-2 px-3 focus:border-purple-500 focus:outline-hidden"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block font-bold text-gray-700 mb-1">Class / Course *</label>
+                <select
+                  value={editClass}
+                  onChange={e => setEditClass(e.target.value)}
+                  className="w-full rounded-xl border border-gray-200 py-2 px-3 focus:border-purple-500 focus:outline-hidden"
+                >
+                  <option value="Class 9">Class 9</option>
+                  <option value="Class 10">Class 10</option>
+                  <option value="Class 11">Class 11</option>
+                  <option value="Class 12">Class 12</option>
+                  <option value="Competitive Exam Preparation">Competitive Exam Preparation</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-bold text-gray-700 mb-1">Status *</label>
+                <select
+                  value={editStatus}
+                  onChange={e => setEditStatus(e.target.value as any)}
+                  className="w-full rounded-xl border border-gray-200 py-2 px-3 focus:border-purple-500 focus:outline-hidden"
+                >
+                  <option value="scheduled">Scheduled</option>
+                  <option value="completed">Completed</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="block font-bold text-gray-700 mb-1">Exam Date *</label>
+              <input
+                type="date"
+                required
+                value={editExamDate}
+                onChange={e => setEditExamDate(e.target.value)}
+                className="w-full rounded-xl border border-gray-200 py-2 px-3 focus:border-purple-500 focus:outline-hidden"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-gray-100">
+              <button
+                type="button"
+                onClick={() => setEditingExam(null)}
+                className="rounded-xl border border-gray-200 px-4 py-2 font-semibold text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="rounded-xl bg-purple-600 px-5 py-2 font-bold text-white shadow-xs hover:bg-purple-700"
+              >
+                Save Changes
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {/* CONFIRM DELETE EXAM DIALOG */}
+      <ConfirmDialog
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleConfirmDeleteExam}
+        title="Delete Examination?"
+        message={`Are you sure you want to delete "${deleteTarget?.title}" (${deleteTarget?.classCourse})?`}
+        confirmLabel="Delete Examination"
+      />
+
+      {/* CONFIRM DELETE MARKS DIALOG */}
+      <ConfirmDialog
+        isOpen={!!deleteMarksTarget}
+        onClose={() => setDeleteMarksTarget(null)}
+        onConfirm={handleConfirmDeleteMarks}
+        title="Delete Student Marks?"
+        message={`Are you sure you want to delete the score record for ${deleteMarksTarget?.studentName} in "${deleteMarksTarget?.examTitle}"?`}
+        confirmLabel="Delete Marks"
+      />
     </div>
   );
 };

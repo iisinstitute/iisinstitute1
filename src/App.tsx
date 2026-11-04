@@ -17,6 +17,7 @@ import { ParentPortalView } from './views/ParentPortalView.tsx';
 import { AnnouncementsView } from './views/AnnouncementsView.tsx';
 import { ReportsView } from './views/ReportsView.tsx';
 import { AuditLogsView } from './views/AuditLogsView.tsx';
+import { LoginView } from './views/LoginView.tsx';
 import { Modal } from './components/common/Modal.tsx';
 import { Sparkles, Trash2, RefreshCw, AlertTriangle } from 'lucide-react';
 
@@ -38,8 +39,13 @@ const TAB_TITLES: Record<ActiveTab, string> = {
 };
 
 const MainAppContent: React.FC = () => {
-  const { activeRole } = useAuth();
+  const { activeRole, isAuthenticated } = useAuth();
   const { resetToDemoData, clearAllInstituteData, isLoading } = useData();
+
+  // If not authenticated, render the Number & Password Login view
+  if (!isAuthenticated) {
+    return <LoginView />;
+  }
 
   // If active role is Parent, default to parent-portal
   const [activeTab, setActiveTab] = useState<ActiveTab>(
